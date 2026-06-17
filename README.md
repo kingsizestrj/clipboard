@@ -6,6 +6,7 @@ Um app web minúsculo e self-hosted pra **copiar e colar texto, imagens e arquiv
 - **Sem instalar nada no celular:** é só abrir a URL (e dá pra "Adicionar à tela inicial" como PWA).
 - **Tempo real:** novos itens aparecem instantaneamente (Server-Sent Events).
 - **Seguro pra expor:** PIN, rate-limit no login, limites de upload, proteção contra path traversal e XSS.
+- **Não depende de cookie:** o login guarda um token no `localStorage` e o envia por header `Authorization` (e por `?t=` no streaming/downloads). Funciona mesmo em navegadores que bloqueiam cookies. O cookie ainda é enviado como bônus onde for permitido. (O token aparece na URL de alguns recursos internos, o que pode constar no log do servidor — aceitável num homelab.)
 
 ## Como funciona
 

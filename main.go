@@ -387,11 +387,31 @@ func (a *auth) authed(r *http.Request) bool {
 	if !a.enabled() {
 		return true
 	}
-	c, err := r.Cookie(cookieName)
-	if err != nil {
+	if a.token == "" {
 		return false
 	}
-	return subtle.ConstantTimeCompare([]byte(c.Value), []byte(a.token)) == 1
+	match := func(s string) bool {
+		return s != "" && subtle.ConstantTimeCompare([]byte(s), []byte(a.token)) == 1
+	}
+	// 1) Authorization: Bearer <token> (default for fetch requests)
+	if h := r.Header.Get("Authorization"); strings.HasPrefix(h, "Bearer ") {
+		if match(strings.TrimPrefix(h, "Bearer ")) {
+			return true
+		}
+	}
+	// 2) X-Clip-Token header
+	if match(r.Header.Get("X-Clip-Token")) {
+		return true
+	}
+	// 3) ?t= query param — for EventSource and <img>/<a> that can't send headers
+	if match(r.URL.Query().Get("t")) {
+		return true
+	}
+	// 4) cookie — used where the browser allows cookies
+	if c, err := r.Cookie(cookieName); err == nil && match(c.Value) {
+		return true
+	}
+	return false
 }
 
 // login limiter: simple per-IP failed-attempt throttle.
@@ -610,6 +630,9 @@ func (s *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.auth.limiter.success(ip)
+	// Cookie for browsers that allow it; the token in the body is the primary
+	// mechanism (stored in localStorage, sent as an Authorization header) so the
+	// app works even where cookies are blocked.
 	http.SetCookie(w, &http.Cookie{
 		Name:     cookieName,
 		Value:    s.auth.token,
@@ -619,7 +642,7 @@ func (s *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   60 * 60 * 24 * 365,
 	})
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "token": s.auth.token})
 }
 
 func (s *server) handleLogout(w http.ResponseWriter, r *http.Request) {

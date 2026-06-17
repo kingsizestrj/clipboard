@@ -1,6 +1,6 @@
 // Minimal service worker: caches the app shell so the PWA opens offline.
 // Never caches API responses or blobs — those must always be fresh.
-const CACHE = "clip-v1";
+const CACHE = "clip-v2";
 const SHELL = [
   "/",
   "/static/app.js",

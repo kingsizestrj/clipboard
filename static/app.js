@@ -7,6 +7,36 @@ const statusDot = $("status-dot");
 let evtSource = null;
 let reconnectTimer = null;
 
+// Session token sent via Authorization header, persisted in localStorage when
+// allowed. This avoids depending on cookies, which some browsers / privacy
+// settings (e.g. Firefox blocking cookies) refuse to store.
+let token = "";
+try { token = localStorage.getItem("clip_token") || ""; } catch (e) { token = ""; }
+
+function saveToken(t) {
+  token = t || "";
+  try {
+    if (token) localStorage.setItem("clip_token", token);
+    else localStorage.removeItem("clip_token");
+  } catch (e) { /* storage blocked — keep token in memory for this session */ }
+}
+
+function authHeaders(extra) {
+  const h = Object.assign({}, extra || {});
+  if (token) h["Authorization"] = "Bearer " + token;
+  return h;
+}
+
+// ?t=<token> for requests that can't send a header (EventSource, <img>, <a download>).
+function tokenParam() {
+  return token ? "?t=" + encodeURIComponent(token) : "";
+}
+
+function onAuthLost() {
+  saveToken("");
+  showPin();
+}
+
 // ---------- helpers ----------
 
 function toast(msg) {
@@ -37,8 +67,11 @@ function fmtTime(ms) {
 }
 
 async function api(path, opts) {
-  const res = await fetch(path, Object.assign({ credentials: "same-origin" }, opts));
-  if (res.status === 401) { showPin(); throw new Error("auth"); }
+  opts = opts || {};
+  const res = await fetch(path, Object.assign({ credentials: "same-origin" }, opts, {
+    headers: authHeaders(opts.headers),
+  }));
+  if (res.status === 401) { onAuthLost(); throw new Error("auth"); }
   return res;
 }
 
@@ -97,7 +130,7 @@ function renderItem(it) {
     el.appendChild(pre);
     actions.appendChild(makeButton("Copiar", "primary", () => copyText(it.text, pre)));
   } else {
-    const url = "/b/" + encodeURIComponent(it.id);
+    const url = "/b/" + encodeURIComponent(it.id) + tokenParam();
     const mime = it.mime || "";
     if (mime.startsWith("image/")) {
       const img = document.createElement("img");
@@ -215,7 +248,7 @@ async function uploadFiles(files) {
 
 function connectSSE() {
   if (evtSource) evtSource.close();
-  evtSource = new EventSource("/api/events");
+  evtSource = new EventSource("/api/events" + tokenParam());
   evtSource.addEventListener("open", () => { statusDot.className = "dot live"; statusDot.title = "ao vivo"; });
   evtSource.addEventListener("update", () => { loadItems(); });
   evtSource.addEventListener("error", async () => {
@@ -225,8 +258,8 @@ function connectSSE() {
     clearTimeout(reconnectTimer);
     // If the session expired, surface the PIN modal instead of looping on 401.
     try {
-      const me = await (await fetch("/api/me", { credentials: "same-origin" })).json();
-      if (me.needPin && !me.auth) { showPin(); return; }
+      const me = await (await fetch("/api/me", { credentials: "same-origin", headers: authHeaders() })).json();
+      if (me.needPin && !me.auth) { onAuthLost(); return; }
     } catch (e) { /* offline — keep retrying */ }
     reconnectTimer = setTimeout(connectSSE, 3000);
   });
@@ -247,7 +280,7 @@ async function start() {
 
 async function init() {
   let me;
-  try { me = await (await fetch("/api/me", { credentials: "same-origin" })).json(); }
+  try { me = await (await fetch("/api/me", { credentials: "same-origin", headers: authHeaders() })).json(); }
   catch (e) { me = { auth: true, needPin: false }; }
   if (me.needPin) $("btn-logout").hidden = false;
   if (me.needPin && !me.auth) { showPin(); return; }
@@ -272,6 +305,7 @@ $("btn-clear").addEventListener("click", async () => {
 });
 
 $("btn-logout").addEventListener("click", async () => {
+  saveToken("");
   try { await fetch("/api/logout", { method: "POST", credentials: "same-origin" }); } catch (e) {}
   location.reload();
 });
@@ -288,8 +322,12 @@ $("pin-form").addEventListener("submit", async (e) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pin }),
     });
-    if (res.ok) { $("pin-input").value = ""; start(); }
-    else {
+    if (res.ok) {
+      const j = await res.json().catch(() => ({}));
+      if (j.token) saveToken(j.token);
+      $("pin-input").value = "";
+      start();
+    } else {
       const j = await res.json().catch(() => ({}));
       errEl.textContent = j.error || "PIN incorreto";
       errEl.hidden = false;
