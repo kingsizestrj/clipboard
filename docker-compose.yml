@@ -1,0 +1,34 @@
+services:
+  clip:
+    build: .
+    image: clip:latest
+    container_name: clip
+    restart: unless-stopped
+    ports:
+      # host:container — troque 8099 se a porta já estiver em uso
+      - "8099:8080"
+    environment:
+      # Defina CLIP_PIN no arquivo .env (copie de .env.example). Sem PIN, o app não sobe.
+      CLIP_PIN: "${CLIP_PIN:?defina CLIP_PIN no arquivo .env antes de subir}"
+      CLIP_MAX_UPLOAD_MB: "64"
+      CLIP_MAX_TEXT_KB: "1024"
+      CLIP_RETENTION_DAYS: "14"
+      CLIP_MAX_ITEMS: "300"
+      # Ative SÓ se estiver atrás de um proxy/túnel que sanitiza X-Forwarded-For:
+      # CLIP_TRUST_PROXY: "1"
+    volumes:
+      - clip-data:/data
+    # Frugal num homelab compartilhado:
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  clip-data:

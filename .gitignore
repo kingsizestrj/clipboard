@@ -1,0 +1,12 @@
+# dados em runtime (índice, blobs, segredo de sessão)
+data/
+*.tmp
+
+# segredos / ambiente local
+.env
+.secret
+
+# binários de build
+/clip
+clip.exe
+*.o

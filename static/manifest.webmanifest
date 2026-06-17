@@ -1,0 +1,19 @@
+{
+  "name": "Clip — área de transferência compartilhada",
+  "short_name": "Clip",
+  "description": "Copiar e colar texto, imagens e arquivos entre seus dispositivos.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+data/
+.git/
+*.md
+.gitignore
+.env
+.env.example
+.review.mjs
+docker-compose.yml

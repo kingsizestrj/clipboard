@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Clip — área de transferência compartilhada</title>
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/icon.svg">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="drop-overlay" class="drop-overlay" hidden><div>Solte para enviar</div></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <img src="/static/icon.svg" alt="" width="24" height="24">
+      <span>Clip</span>
+    </div>
+    <div class="actions">
+      <span id="status-dot" class="dot" title="conectando…"></span>
+      <button id="btn-clear" class="ghost" type="button" title="Limpar tudo">Limpar</button>
+      <button id="btn-logout" class="ghost" type="button" hidden>Sair</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="composer">
+      <textarea id="text-input" rows="3" placeholder="Cole (Ctrl/Cmd+V), digite, ou arraste um arquivo…"></textarea>
+      <div class="composer-actions">
+        <button id="btn-send" class="primary" type="button">Enviar texto</button>
+        <label class="filebtn">
+          Anexar / foto
+          <input id="file-input" type="file" multiple hidden>
+        </label>
+        <span id="hint" class="hint">Dica: cole uma imagem com Ctrl/Cmd+V</span>
+      </div>
+    </section>
+
+    <section id="list" class="list" aria-live="polite"></section>
+    <p id="empty" class="empty" hidden>Nada por aqui ainda. Envie algo de qualquer dispositivo. 📋</p>
+  </main>
+
+  <div id="pin-modal" class="modal" hidden>
+    <form id="pin-form" class="card">
+      <h2>PIN</h2>
+      <p>Digite o PIN para acessar a área de transferência.</p>
+      <input id="pin-input" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN">
+      <p id="pin-error" class="error" hidden></p>
+      <button class="primary" type="submit">Entrar</button>
+    </form>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
