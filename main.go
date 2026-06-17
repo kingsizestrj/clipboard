@@ -551,7 +551,7 @@ func main() {
 	mux.HandleFunc("/api/clear", srv.handleClear)
 	mux.HandleFunc("/api/events", srv.handleEvents)
 	mux.HandleFunc("/b/", srv.handleBlob)
-	mux.Handle("/static/", http.FileServer(http.FS(staticFS)))
+	mux.Handle("/static/", noStore(http.FileServer(http.FS(staticFS))))
 	mux.HandleFunc("/manifest.webmanifest", srv.serveAsset("static/manifest.webmanifest", "application/manifest+json"))
 	mux.HandleFunc("/sw.js", srv.serveServiceWorker)
 	mux.HandleFunc("/", srv.handleRoot)
@@ -577,6 +577,16 @@ func securityHeaders(next http.Handler) http.Handler {
 			"default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; "+
 				"style-src 'self'; script-src 'self'; connect-src 'self'; "+
 				"frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// noStore wraps a handler so the app shell is never cached by the browser.
+// The shell is tiny and embedded, so always fetching the latest avoids stale
+// JS/HTML getting stuck after an update.
+func noStore(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -884,6 +894,7 @@ func (s *server) handleRoot(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
+	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write(data)
 }
@@ -895,6 +906,7 @@ func (s *server) serveAsset(name, contentType string) http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
+		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Content-Type", contentType)
 		w.Write(data)
 	}

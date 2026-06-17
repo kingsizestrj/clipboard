@@ -1,5 +1,9 @@
 "use strict";
 
+// Bump this when changing auth/caching so we can confirm in DevTools which
+// build the browser actually loaded.
+console.info("clip ui build: token-auth-2 (no-cookie + no-store + self-healing sw)");
+
 const $ = (id) => document.getElementById(id);
 const listEl = $("list");
 const emptyEl = $("empty");
